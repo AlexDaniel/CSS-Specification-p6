@@ -45,6 +45,7 @@ lives_ok {EVAL $aural-interface-code}, 'interface compilation';
 
 use CSS::Grammar::CSS21;
 use CSS::Grammar::Actions;
+use CSS::Specification::_Base;
 
 dies_ok {EVAL q:to"--END--"}, 'grammar composition, unimplemented interface - dies';
 grammar CSS::Aural::CrappyGrammar
@@ -58,12 +59,12 @@ my $aural-class;
 
 lives_ok {EVAL q:to"--END--"}, 'grammar composition - lives';
 grammar CSS::Aural::Grammar
-    is CSS::Aural::Spec::Grammar 
+    is CSS::Aural::Spec::Grammar
     is CSS::Grammar::CSS21
+    is CSS::Specification::_Base
     does CSS::Aural::Spec::Interface {
 
-    rule module-declaration:sym<test> { <.ws>? <decl> <prio>? <any-arg>* <end-decl> }
-    proto rule decl {*}
+    rule module-declaration:sym<test> { :my $*PROP; <.ws>? <ident> \: { $*PROP = lc $<ident>; say "trying $*PROP ..." } <decl($*PROP)> <prio>? <any-arg>* <end-decl> }
 
     token keyw        {<ident>}             # keyword (case insensitive)
     token identifier  {<name>}              # identifier (case sensitive)
@@ -80,12 +81,12 @@ $aural-class = CSS::Aural::Grammar;
 my $aural-actions;
 
 lives_ok {EVAL q:to"--END--"}, 'class composition - lives';
-our class CSS::Aural::Actions
+class CSS::Aural::Actions
     is CSS::Aural::Spec::Actions 
     is CSS::Grammar::Actions
     does CSS::Aural::Spec::Interface {
 
-    method module-declaration:sym<test>($/)  { make $<decl>.ast; }
+    method module-declaration:sym<test>($/)  { note "got: {$<decl>.ast.perl}"; make $<decl>.ast; }
     method keyw($/)        { make $<ident>.ast }
     method identifier($/)  { make $<name>.ast }
     method number($/)      { make $<num>.ast }
@@ -94,12 +95,12 @@ our class CSS::Aural::Actions
     method generic-voice($/) { make $.list($/) }
     method specific-voice($/) { make $.list($/) }
 
-    method decl($/, $_synopsis) {
-	my $property = (~$0).trim.lc;
+    method decl($/) {
+	my $property = $*PROP;
         my @expr = @( $.list($<expr>) );
         my %ast = property => $property, expr => @expr;
 
-        return %ast;
+        make %ast;
     }
 
 }
@@ -115,7 +116,7 @@ my %expected = ast => [{ruleset => {
   }
 }];
 
-CSS::Grammar::Test::parse-tests($aural-class, '.yay-it-works { stress: 42; speech-rate: fast }',
+CSS::Grammar::Test::parse-tests($aural-class, '.yay-it-works { stress: 42; Speech-Rate: fast; blah: wtf }',
                                 :actions($aural-actions), :%expected);
 
 done;

@@ -112,7 +112,7 @@ sub generate-perl6-rules(@defs, :$proforma) {
 
             say "";
             say "    #| $prop: $synopsis";
-            say "    rule decl:sym<{$prop}> \{:i ($match) ':'  [ {$proforma-str}<expr=.expr-{$prop}>$repeats || <any-args> ] \}";
+            say "    multi rule decl('$prop') \{ {$proforma-str}<expr=.expr-{$prop}>$repeats || <any-args> \}";
             say "    rule expr-$prop \{:i $perl6 \}";
         }
     }
@@ -133,11 +133,7 @@ sub generate-perl6-actions(@defs, %references) {
         for @props -> $prop {
             next if %seen{$prop}++;
 
-            say "";
-            say "    #| {$prop}: $synopsis";
-            say "    method decl:sym<{$prop}>(\$/) \{ make \$.decl(\$/, \&\?ROUTINE.WHY{ $boxed ?? ', :boxed' !! ''}) \}";
-            say "    method expr-{$prop}(\$/) \{ make \$.list(\$/) \}"
-                if %references{'expr-' ~ $prop}:exists;
+            say "    method expr-{$prop}(\$/) \{ make \$.list(\$/) \}";
         }
     }
 }
